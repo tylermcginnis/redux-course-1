@@ -330,9 +330,41 @@
       loading: state.loading
     }))(App)
 
-    // connect: Render any component, passing that component any data it needs from the store.
 
     const Context = React.createContext()
+    function connect (mapStateToProps) {
+      return (Component) => {
+        class Receiver extends React.Component {
+          componentDidMount() {
+            const { subscribe } = this.props.store
+
+            this.unsubcribe = subscribe(() => this.forceUpdate())
+          }
+          componentWillUnmount() {
+            this.unsubcribe()
+          }
+          render() {
+            const { dispatch, getState } = this.props.store
+            const state = getState()
+            const stateNeeded = mapStateToProps(state)
+
+            return <Component {...stateNeeded} dispatch={dispatch} />
+          }
+        }
+
+        class ConnectedComponent extends React.Component {
+          render() {
+            return (
+              <Context.Consumer>
+                {(store) => <Receiver store={store}/>}
+              </Context.Consumer>
+            )
+          }
+        }
+
+        return ConnectedComponent
+      }
+    }
 
     class Provider extends React.Component {
       render() {
